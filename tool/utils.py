@@ -1,66 +1,22 @@
 import cfg
-import sys
 import os
-import time
 import math
 import numpy as np
 import cv2
-import itertools
-import struct  # get_image_size
-import imghdr  # get_image_size
+import logging
 
+#Logging Setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-def sigmoid(x):
-    return 1.0 / (np.exp(-x) + 1.)
+file_handler = logging.FileHandler('logs/utils.log')
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
+file_handler.setFormatter(formatter)
 
-
-def softmax(x):
-    x = np.exp(x - np.expand_dims(np.max(x, axis=1), axis=1))
-    x = x / np.expand_dims(x.sum(axis=1), axis=1)
-    return x
-
-
-def bbox_iou(box1, box2, x1y1x2y2=True):
-    
-    # print('iou box1:', box1)
-    # print('iou box2:', box2)
-
-    if x1y1x2y2:
-        mx = min(box1[0], box2[0])
-        Mx = max(box1[2], box2[2])
-        my = min(box1[1], box2[1])
-        My = max(box1[3], box2[3])
-        w1 = box1[2] - box1[0]
-        h1 = box1[3] - box1[1]
-        w2 = box2[2] - box2[0]
-        h2 = box2[3] - box2[1]
-    else:
-        w1 = box1[2]
-        h1 = box1[3]
-        w2 = box2[2]
-        h2 = box2[3]
-
-        mx = min(box1[0], box2[0])
-        Mx = max(box1[0] + w1, box2[0] + w2)
-        my = min(box1[1], box2[1])
-        My = max(box1[1] + h1, box2[1] + h2)
-    uw = Mx - mx
-    uh = My - my
-    cw = w1 + w2 - uw
-    ch = h1 + h2 - uh
-    carea = 0
-    if cw <= 0 or ch <= 0:
-        return 0.0
-
-    area1 = w1 * h1
-    area2 = w2 * h2
-    carea = cw * ch
-    uarea = area1 + area2 - carea
-    return carea / uarea
-
+logger.addHandler(file_handler)
 
 def nms_cpu(boxes, confs, nms_thresh=0.5, min_mode=False):
-    # print(boxes.shape)
+    
     x1 = boxes[:, 0]
     y1 = boxes[:, 1]
     x2 = boxes[:, 2]
@@ -113,8 +69,8 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
         box = boxes[i]
 
         if (box[5]*100) < 90.0:
-            print('Uploaded Image is not Aadhaar')
-            break
+            logger.info('Detection confidence less than 90%, image is not Aadhaar')
+            return 0
         else:
             confidence=1
             x1 = int(box[0] * width)
@@ -129,7 +85,7 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
             if len(box) >= 7 and class_names:
                 cls_conf = box[5]
                 cls_id = box[6]
-                print('%s: %f' % (class_names[cls_id], cls_conf))
+                logger.info(f'{class_names[cls_id]}, {cls_conf}')
                 classes = len(class_names)
                 offset = cls_id * 123457 % classes
                 red = get_color(2, offset, classes,colors)
@@ -142,21 +98,9 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
 
 
     if savename and confidence :
-        print("save plot results to %s" % savename)
         cv2.imwrite(os.path.join(cfg.DETECTION_FOLDER,savename), img)
-    return img
-
-
-def read_truths(lab_path):
-    if not os.path.exists(lab_path):
-        return np.array([])
-    if os.path.getsize(lab_path):
-        truths = np.loadtxt(lab_path)
-        truths = truths.reshape(truths.size / 5, 5)  # to avoid single truth problem
-        return truths
-    else:
-        return np.array([])
-
+        logger.info(f"Plot results saved to : {os.path.join(cfg.DETECTION_FOLDER,savename)}")
+        return 1
 
 def load_class_names(namesfile):
     class_names = []
@@ -166,8 +110,6 @@ def load_class_names(namesfile):
         line = line.rstrip()
         class_names.append(line)
     return class_names
-
-
 
 def post_processing(img, conf_thresh, nms_thresh, output):
 
