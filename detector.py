@@ -4,8 +4,18 @@ import onnx
 import numpy as np
 import cv2
 import onnxruntime
-
+import logging
 from tool.utils import plot_boxes_cv2,post_processing,load_class_names
+
+#Logging Setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler('logs/detector.log')
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
 
 class Detector:
 
@@ -18,7 +28,7 @@ class Detector:
     def detect(self):
         """Detect if image is Aadhaar and save image if detected"""
 
-        print("The model expects input shape: ", self.session.get_inputs()[0].shape)
+        logger.info(f'The model expects input shape: {self.session.get_inputs()[0].shape}')
 
         image_src = cv2.imread(self.image_path)
         IN_IMAGE_H = self.session.get_inputs()[0].shape[2]
@@ -30,22 +40,25 @@ class Detector:
         img_in = np.transpose(img_in, (2, 0, 1)).astype(np.float32)
         img_in = np.expand_dims(img_in, axis=0)
         img_in /= 255.0
-        print("Shape of the network input after preprocessing: ", img_in.shape)
+        logger.info(f'Shape of the network input after preprocessing: {img_in.shape}')
 
         # Compute
         input_name = self.session.get_inputs()[0].name
-
+        
         outputs = self.session.run(None, {input_name: img_in})
-
+           
         boxes = post_processing(img_in, 0.4, 0.6, outputs)
+        logger.info(f'Post Processing output : {boxes}')
 
         if np.array(boxes).size:
 
-            namesfile = 'data/obj.names'
+            namesfile = cfg.NAMESFILE
             class_names = load_class_names(namesfile)
-            plot_boxes_cv2(image_src, boxes[0], savename=self.filename, class_names=class_names) #Detect image and save image with bounding boxes if Aadhaar card detected
-            return 1
+            if plot_boxes_cv2(image_src, boxes[0], savename=self.filename, class_names=class_names): #Detect image and save image with bounding boxes if Aadhaar card detected
+                return 1
+            else:
+                return 0
             
         else:
-            print('Uploaded Image is not Aadhaar')
+            logger.info('Uploaded Image is not Aadhaar')
             return 0

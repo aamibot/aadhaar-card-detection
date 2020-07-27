@@ -12,6 +12,6 @@ WORKDIR /app
 
 COPY . .
 
-ENTRYPOINT ["gunicorn","--bind=0.0.0.0:4000","--workers=4"]
+ENTRYPOINT ["gunicorn","--bind=0.0.0.0:$PORT","--workers=4"]
 
 CMD ["app"]

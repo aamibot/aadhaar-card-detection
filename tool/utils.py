@@ -3,9 +3,20 @@ import os
 import math
 import numpy as np
 import cv2
+import logging
+
+#Logging Setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler('logs/utils.log')
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
 
 def nms_cpu(boxes, confs, nms_thresh=0.5, min_mode=False):
-    # print(boxes.shape)
+    
     x1 = boxes[:, 0]
     y1 = boxes[:, 1]
     x2 = boxes[:, 2]
@@ -58,8 +69,8 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
         box = boxes[i]
 
         if (box[5]*100) < 90.0:
-            print('Uploaded Image is not Aadhaar')
-            break
+            logger.info('Detection confidence less than 90%, image is not Aadhaar')
+            return 0
         else:
             confidence=1
             x1 = int(box[0] * width)
@@ -74,7 +85,7 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
             if len(box) >= 7 and class_names:
                 cls_conf = box[5]
                 cls_id = box[6]
-                print('%s: %f' % (class_names[cls_id], cls_conf))
+                logger.info(f'{class_names[cls_id]}, {cls_conf}')
                 classes = len(class_names)
                 offset = cls_id * 123457 % classes
                 red = get_color(2, offset, classes,colors)
@@ -87,9 +98,9 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
 
 
     if savename and confidence :
-        print("save plot results to %s" % savename)
         cv2.imwrite(os.path.join(cfg.DETECTION_FOLDER,savename), img)
-    return img
+        logger.info(f"Plot results saved to : {os.path.join(cfg.DETECTION_FOLDER,savename)}")
+        return 1
 
 def load_class_names(namesfile):
     class_names = []
