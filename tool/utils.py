@@ -69,7 +69,7 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
         box = boxes[i]
 
         if (box[5]*100) < 98.0:
-            logger.info('Detection confidence less than 90%, image is not Aadhaar')
+            logger.info('Detection confidence less than 98%, image is not Aadhaar')
             return 0
         else:
             confidence=1
