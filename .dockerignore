@@ -1,5 +1,6 @@
 .vscode
 .git
 .gitignore
+.gitattributes
 __pycache__
 .dockerignore

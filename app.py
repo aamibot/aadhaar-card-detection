@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
-from detector import  Detector
+import detector
 import logging
 import cfg
 import os
@@ -55,9 +55,9 @@ def upload_file():
       f.save(filepath)
       logger.info(f'File saved to : {filepath}')
 
-      detector = Detector(filepath,filename)
+      _detector = detector.Detector(filepath,filename)
 
-      if detector.detect():
+      if _detector.detect():
         return render_template("detected.html", display_detection = filename, fname = filename)
       else:
         return render_template("not_detected.html", display_detection = filename, fname = filename)
