@@ -17,22 +17,24 @@ file_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 
+model = onnxruntime.InferenceSession(cfg.MODEL_PATH)
+logger.info(f'Model loaded')
+
 class Detector:
 
     def __init__(self,image_path,filename):
 
-        self.session = onnxruntime.InferenceSession(cfg.MODEL_PATH)
         self.image_path = image_path
         self.filename = filename
 
     def detect(self):
         """Detect if image is Aadhaar and save image if detected"""
 
-        logger.info(f'The model expects input shape: {self.session.get_inputs()[0].shape}')
+        logger.info(f'The model expects input shape: {model.get_inputs()[0].shape}')
 
         image_src = cv2.imread(self.image_path)
-        IN_IMAGE_H = self.session.get_inputs()[0].shape[2]
-        IN_IMAGE_W = self.session.get_inputs()[0].shape[3]
+        IN_IMAGE_H = model.get_inputs()[0].shape[2]
+        IN_IMAGE_W = model.get_inputs()[0].shape[3]
 
         # Input
         resized = cv2.resize(image_src, (IN_IMAGE_W, IN_IMAGE_H), interpolation=cv2.INTER_LINEAR)
@@ -43,9 +45,9 @@ class Detector:
         logger.info(f'Shape of the network input after preprocessing: {img_in.shape}')
 
         # Compute
-        input_name = self.session.get_inputs()[0].name
+        input_name = model.get_inputs()[0].name
         
-        outputs = self.session.run(None, {input_name: img_in})
+        outputs = model.run(None, {input_name: img_in})
            
         boxes = post_processing(img_in, 0.4, 0.6, outputs)
         logger.info(f'Post Processing output : {boxes}')
